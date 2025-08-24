@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Zarządzania Narzędziami</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .login-box {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            width: 400px;
+        }
+        
+        .main-container {
+            display: none;
+            background: white;
+            min-height: 100vh;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .toolbar {
+            background: #f5f5f5;
+            padding: 15px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #45a049;
+        }
+        
+        .btn-warning {
+            background: #FF9800;
+            color: white;
+        }
+        
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+        
+        .table-container {
+            padding: 20px;
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        th {
+            background: #f0f0f0;
+            font-weight: bold;
+        }
+        
+        tr:hover {
+            background: #f5f5f5;
+        }
+        
+        .status-available {
+            color: green;
+            font-weight: bold;
+        }
+        
+        .status-borrowed {
+            color: red;
+            font-weight: bold;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+        }
+        
+        .modal-content {
+            background: white;
+            margin: 10% auto;
+            padding: 30px;
+            width: 500px;
+            border-radius: 10px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        
+        .search-box {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            width: 300px;
+        }
+    </style>
+</head>
+<body>
+    <!-- EKRAN LOGOWANIA -->
+    <div class="login-container" id="loginScreen">
+        <div class="login-box">
+            <h2 style="text-align: center; margin-bottom: 30px;">System Zarządzania Narzędziami</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label>Nazwa użytkownika:</label>
+                    <input type="text" id="username" required>
+                </div>
+                <div class="form-group">
+                    <label>Hasło:</label>
+                    <input type="password" id="password" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Zaloguj się</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- GŁÓWNA APLIKACJA -->
+    <div class="main-container" id="mainApp">
+        <div class="header">
+            <h1>System Zarządzania Narzędziami</h1>
+            <div>
+                <span id="userInfo"></span>
+                <button class="btn" onclick="logout()" style="margin-left: 20px;">Wyloguj</button>
+            </div>
+        </div>
+        
+        <div class="toolbar">
+            <button class="btn btn-primary" onclick="showAddToolModal()" id="addToolBtn">➕ Dodaj narzędzie</button>
+            <button class="btn btn-primary" onclick="loadTools()">🔄 Odśwież</button>
+            <button class="btn btn-warning" onclick="showProjectsModal()" id="projectsBtn">📁 Projekty</button>
+            <button class="btn btn-warning" onclick="showUsersModal()" id="usersBtn">👥 Użytkownicy</button>
+            <button class="btn btn-warning" onclick="showStats()" id="statsBtn">📊 Statystyki</button>
+            <input type="text" class="search-box" placeholder="Szukaj..." onkeyup="searchTools(this.value)">
+        </div>
+        
+        <div class="table-container">
+            <table id="toolsTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Kod</th>
+                        <th>Nazwa</th>
+                        <th>Kategoria</th>
+                        <th>Status</th>
+                        <th>Wypożyczył</th>
+                        <th>Akcje</th>
+                    </tr>
+                </thead>
+                <tbody id="toolsTableBody">
+                    <!-- Dane będą tutaj -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- MODAL DODAWANIA NARZĘDZIA -->
+    <div id="addToolModal" class="modal">
+        <div class="modal-content">
+            <h2>Dodaj nowe narzędzie</h2>
+            <form id="addToolForm">
+                <div class="form-group">
+                    <label>Nazwa:</label>
+                    <input type="text" id="toolName" required>
+                </div>
+                <div class="form-group">
+                    <label>Kategoria:</label>
+                    <select id="toolCategory">
+                        <option>Elektronarzędzia</option>
+                        <option>Narzędzia ręczne</option>
+                        <option>Narzędzia pomiarowe</option>
+                        <option>Narzędzia ogrodnicze</option>
+                        <option>Inne</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Opis:</label>
+                    <textarea id="toolDescription" rows="3"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Dodaj</button>
+                <button type="button" class="btn btn-danger" onclick="closeModal('addToolModal')">Anuluj</button>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        let token = localStorage.getItem('token');
+        let userData = JSON.parse(localStorage.getItem('userData') || '{}');
+        let allTools = [];
+        
+        // Sprawdź czy użytkownik jest zalogowany
+        if (token) {
+            showMainApp();
+        }
+        
+        // LOGOWANIE
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({username, password})
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    token = data.access_token;
+                    userData = data.user;
+                    
+                    localStorage.setItem('token', token);
+                    localStorage.setItem('userData', JSON.stringify(userData));
+                    
+                    showMainApp();
+                } else {
+                    alert('Nieprawidłowe dane logowania!');
+                }
+            } catch (error) {
+                alert('Błąd połączenia z serwerem!');
+            }
+        });
+        
+        // POKAŻ GŁÓWNĄ APLIKACJĘ
+        function showMainApp() {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('mainApp').style.display = 'block';
+            document.getElementById('userInfo').textContent = `Zalogowany: ${userData.username} (${userData.role})`;
+            
+            // Ukryj przyciski dla zwykłych użytkowników
+            if (userData.role !== 'admin') {
+                document.getElementById('addToolBtn').style.display = 'none';
+                document.getElementById('projectsBtn').style.display = 'none';
+                document.getElementById('usersBtn').style.display = 'none';
+                document.getElementById('statsBtn').style.display = 'none';
+            }
+            
+            loadTools();
+        }
+        
+        // ŁADOWANIE NARZĘDZI
+        async function loadTools() {
+            try {
+                const response = await fetch('/api/tools', {
+                    headers: {'Authorization': `Bearer ${token}`}
+                });
+                
+                if (response.ok) {
+                    allTools = await response.json();
+                    displayTools(allTools);
+                }
+            } catch (error) {
+                console.error('Błąd ładowania narzędzi:', error);
+            }
+        }
+        
+        // WYŚWIETLANIE NARZĘDZI
+        function displayTools(tools) {
+            const tbody = document.getElementById('toolsTableBody');
+            tbody.innerHTML = '';
+            
+            tools.forEach(tool => {
+                const row = tbody.insertRow();
+                
+                row.insertCell(0).textContent = tool.id;
+                row.insertCell(1).innerHTML = `<strong>${tool.code}</strong>`;
+                row.insertCell(2).textContent = tool.name;
+                row.insertCell(3).textContent = tool.category || '-';
+                
+                const statusCell = row.insertCell(4);
+                if (tool.status === 'available') {
+                    statusCell.innerHTML = '<span class="status-available">✅ Dostępne</span>';
+                } else {
+                    statusCell.innerHTML = '<span class="status-borrowed">❌ Wypożyczone</span>';
+                }
+                
+                const borrowerCell = row.insertCell(5);
+                if (tool.borrowed_by) {
+                    borrowerCell.innerHTML = `${tool.borrowed_by}<br><small>${tool.project_name || '-'}</small>`;
+                } else {
+                    borrowerCell.textContent = '-';
+                }
+                
+                const actionsCell = row.insertCell(6);
+                if (tool.status === 'available') {
+                    actionsCell.innerHTML = `
+                        <button class="btn btn-primary" onclick="borrowTool(${tool.id})">Wypożycz</button>
+                    `;
+                } else {
+                    actionsCell.innerHTML = `
+                        <button class="btn btn-warning" onclick="returnTool(${tool.id})">Zwróć</button>
+                    `;
+                }
+                
+                if (userData.role === 'admin') {
+                    actionsCell.innerHTML += `
+                        <button class="btn btn-danger" onclick="deleteTool(${tool.id})">Usuń</button>
+                    `;
+                }
+            });
+        }
+        
+        // WYSZUKIWANIE
+        function searchTools(query) {
+            const filtered = allTools.filter(tool => 
+                tool.name.toLowerCase().includes(query.toLowerCase()) ||
+                tool.code.toLowerCase().includes(query.toLowerCase())
+            );
+            displayTools(filtered);
+        }
+        
+        // WYPOŻYCZANIE
+        async function borrowTool(toolId) {
+            const notes = prompt('Dodaj notatkę (opcjonalnie):');
+            
+            try {
+                const response = await fetch(`/api/tools/${toolId}/borrow`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({notes: notes || ''})
+                });
+                
+                if (response.ok) {
+                    alert('Narzędzie wypożyczone!');
+                    loadTools();
+                } else {
+                    alert('Nie można wypożyczyć narzędzia!');
+                }
+            } catch (error) {
+                alert('Błąd połączenia!');
+            }
+        }
+        
+        // ZWROT
+        async function returnTool(toolId) {
+            const notes = prompt('Stan narzędzia/uwagi:');
+            
+            try {
+                const response = await fetch(`/api/tools/${toolId}/return`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({notes: notes || ''})
+                });
+                
+                if (response.ok) {
+                    alert('Narzędzie zwrócone!');
+                    loadTools();
+                } else {
+                    alert('Nie można zwrócić narzędzia!');
+                }
+            } catch (error) {
+                alert('Błąd połączenia!');
+            }
+        }
+        
+        // DODAWANIE NARZĘDZIA
+        document.getElementById('addToolForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const data = {
+                name: document.getElementById('toolName').value,
+                category: document.getElementById('toolCategory').value,
+                description: document.getElementById('toolDescription').value
+            };
+            
+            try {
+                const response = await fetch('/api/tools', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    alert('Narzędzie dodane!');
+                    closeModal('addToolModal');
+                    loadTools();
+                } else {
+                    alert('Błąd dodawania narzędzia!');
+                }
+            } catch (error) {
+                alert('Błąd połączenia!');
+            }
+        });
+        
+        // MODAL
+        function showAddToolModal() {
+            document.getElementById('addToolModal').style.display = 'block';
+        }
+        
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+        
+        // WYLOGOWANIE
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('userData');
+            location.reload();
+        }
+        
+        // STATYSTYKI
+        async function showStats() {
+            try {
+                const response = await fetch('/api/stats', {
+                    headers: {'Authorization': `Bearer ${token}`}
+                });
+                
+                if (response.ok) {
+                    const stats = await response.json();
+                    alert(`
+                        STATYSTYKI SYSTEMU
+                        
+                        Narzędzia: ${stats.total_tools}
+                        Dostępne: ${stats.available_tools}
+                        Wypożyczone: ${stats.borrowed_tools}
+                        
+                        Projekty: ${stats.total_projects}
+                        Użytkownicy: ${stats.total_users}
+                        
+                        Najpopularniejsze narzędzie: ${stats.most_popular_tool}
+                    `);
+                }
+            } catch (error) {
+                alert('Błąd pobierania statystyk!');
+            }
+        }
+    </script>
+</body>
+</html>
