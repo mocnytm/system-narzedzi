@@ -219,205 +219,7 @@
             </table>
         </div>
     </div>
-         // PROJEKTY
-async function showProjectsModal() {
-    const modal = document.createElement('div');
-    modal.className = 'modal';
-    modal.style.display = 'block';
-    modal.innerHTML = `
-        <div class="modal-content">
-            <h2>Zarządzanie Projektami</h2>
-            <button class="btn btn-primary" onclick="addProject()">➕ Dodaj projekt</button>
-            <div id="projectsList" style="margin-top: 20px;">
-                <p>Ładowanie...</p>
-            </div>
-            <button class="btn btn-danger" onclick="this.parentElement.parentElement.remove()">Zamknij</button>
-        </div>
-    `;
-    document.body.appendChild(modal);
-    
-    // Załaduj projekty
-    try {
-        const response = await fetch('/api/projects', {
-            headers: {'Authorization': `Bearer ${token}`}
-        });
-        if (response.ok) {
-            const projects = await response.json();
-            const listHtml = projects.map(p => `
-                <div style="padding: 10px; border-bottom: 1px solid #ddd;">
-                    <strong>${p.name}</strong> - ${p.description || 'Brak opisu'}
-                </div>
-            `).join('');
-            document.getElementById('projectsList').innerHTML = listHtml || '<p>Brak projektów</p>';
-        }
-    } catch (error) {
-        console.error('Błąd:', error);
-    }
-}
-
-async function addProject() {
-    const name = prompt('Nazwa projektu:');
-    if (!name) return;
-    
-    const description = prompt('Opis projektu (opcjonalnie):');
-    
-    try {
-        const response = await fetch('/api/projects', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({name, description})
-        });
-        
-        if (response.ok) {
-            alert('Projekt dodany!');
-            showProjectsModal();
-        } else {
-            alert('Błąd dodawania projektu!');
-        }
-    } catch (error) {
-        alert('Błąd połączenia!');
-    }
-}
-
-// UŻYTKOWNICY
-async function showUsersModal() {
-    const modal = document.createElement('div');
-    modal.className = 'modal';
-    modal.style.display = 'block';
-    modal.innerHTML = `
-        <div class="modal-content" style="max-width: 700px;">
-            <h2>Zarządzanie Użytkownikami</h2>
-            <button class="btn btn-primary" onclick="addUser()">➕ Dodaj użytkownika</button>
-            <div id="usersList" style="margin-top: 20px;">
-                <p>Ładowanie...</p>
-            </div>
-            <button class="btn btn-danger" onclick="this.parentElement.parentElement.remove()">Zamknij</button>
-        </div>
-    `;
-    document.body.appendChild(modal);
-    
-    // Załaduj użytkowników
-    try {
-        const response = await fetch('/api/users', {
-            headers: {'Authorization': `Bearer ${token}`}
-        });
-        if (response.ok) {
-            const users = await response.json();
-            const tableHtml = `
-                <table style="width: 100%;">
-                    <thead>
-                        <tr>
-                            <th>Użytkownik</th>
-                            <th>Email</th>
-                            <th>Rola</th>
-                            <th>Akcje</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${users.map(u => `
-                            <tr>
-                                <td>${u.username}</td>
-                                <td>${u.email}</td>
-                                <td>${u.role}</td>
-                                <td>
-                                    ${u.username !== 'admin' ? 
-                                        `<button class="btn btn-danger" onclick="deleteUser(${u.id})">Usuń</button>` 
-                                        : 'Admin'}
-                                </td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            `;
-            document.getElementById('usersList').innerHTML = tableHtml;
-        }
-    } catch (error) {
-        console.error('Błąd:', error);
-    }
-}
-
-async function addUser() {
-    const username = prompt('Nazwa użytkownika:');
-    if (!username) return;
-    
-    const email = prompt('Email:');
-    if (!email) return;
-    
-    const password = prompt('Hasło (min. 6 znaków):');
-    if (!password || password.length < 6) {
-        alert('Hasło musi mieć minimum 6 znaków!');
-        return;
-    }
-    
-    const role = confirm('Czy to administrator? (OK = Admin, Anuluj = Pracownik)') ? 'admin' : 'worker';
-    
-    try {
-        const response = await fetch('/api/users', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({username, email, password, role})
-        });
-        
-        if (response.ok) {
-            alert(`Użytkownik dodany!\nLogin: ${username}\nHasło: ${password}\n\nZapisz te dane!`);
-            showUsersModal();
-        } else {
-            const error = await response.json();
-            alert(error.message || 'Błąd dodawania użytkownika!');
-        }
-    } catch (error) {
-        alert('Błąd połączenia!');
-    }
-}
-
-async function deleteUser(userId) {
-    if (!confirm('Czy na pewno usunąć tego użytkownika?')) return;
-    
-    try {
-        const response = await fetch(`/api/users/${userId}`, {
-            method: 'DELETE',
-            headers: {'Authorization': `Bearer ${token}`}
-        });
-        
-        if (response.ok) {
-            alert('Użytkownik usunięty!');
-            showUsersModal();
-        } else {
-            const error = await response.json();
-            alert(error.message || 'Nie można usunąć użytkownika!');
-        }
-    } catch (error) {
-        alert('Błąd połączenia!');
-    }
-}
-
-// USUWANIE NARZĘDZIA
-async function deleteTool(toolId) {
-    if (!confirm('Czy na pewno usunąć to narzędzie?')) return;
-    
-    try {
-        const response = await fetch(`/api/tools/${toolId}`, {
-            method: 'DELETE',
-            headers: {'Authorization': `Bearer ${token}`}
-        });
-        
-        if (response.ok) {
-            alert('Narzędzie usunięte!');
-            loadTools();
-        } else {
-            const error = await response.json();
-            alert(error.message || 'Nie można usunąć narzędzia!');
-        }
-    } catch (error) {
-        alert('Błąd połączenia!');
-    }
-}
+         
     <!-- MODAL DODAWANIA NARZĘDZIA -->
     <div id="addToolModal" class="modal">
         <div class="modal-content">
@@ -698,6 +500,205 @@ async function deleteTool(toolId) {
                 }
             } catch (error) {
                 alert('Błąd pobierania statystyk!');
+            }
+        }
+        // PROJEKTY
+        async function showProjectsModal() {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.display = 'block';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h2>Zarządzanie Projektami</h2>
+                    <button class="btn btn-primary" onclick="addProject()">➕ Dodaj projekt</button>
+                    <div id="projectsList" style="margin-top: 20px;">
+                        <p>Ładowanie...</p>
+                    </div>
+                    <button class="btn btn-danger" onclick="this.parentElement.parentElement.remove()">Zamknij</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+    
+            // Załaduj projekty
+            try {
+                const response = await fetch('/api/projects', {
+                    headers: {'Authorization': `Bearer ${token}`}
+                });
+                if (response.ok) {
+                    const projects = await response.json();
+                    const listHtml = projects.map(p => `
+                        <div style="padding: 10px; border-bottom: 1px solid #ddd;">
+                            <strong>${p.name}</strong> - ${p.description || 'Brak opisu'}
+                        </div>
+                    `).join('');
+                    document.getElementById('projectsList').innerHTML = listHtml || '<p>Brak projektów</p>';
+                }
+            } catch (error) {
+                console.error('Błąd:', error);
+            }
+        }
+
+        async function addProject() {
+            const name = prompt('Nazwa projektu:');
+            if (!name) return;
+    
+            const description = prompt('Opis projektu (opcjonalnie):');
+    
+            try {
+                const response = await fetch('/api/projects', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({name, description})
+                });
+        
+                if (response.ok) {
+                    alert('Projekt dodany!');
+                    showProjectsModal();
+                } else {
+                    alert('Błąd dodawania projektu!');
+                }
+            } catch (error) {
+                alert('Błąd połączenia!');
+            }
+        }
+
+        // UŻYTKOWNICY
+        async function showUsersModal() {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.display = 'block';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 700px;">
+                    <h2>Zarządzanie Użytkownikami</h2>
+                    <button class="btn btn-primary" onclick="addUser()">➕ Dodaj użytkownika</button>
+                    <div id="usersList" style="margin-top: 20px;">
+                        <p>Ładowanie...</p>
+                    </div>
+                    <button class="btn btn-danger" onclick="this.parentElement.parentElement.remove()">Zamknij</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+    
+            // Załaduj użytkowników
+            try {
+                const response = await fetch('/api/users', {
+                    headers: {'Authorization': `Bearer ${token}`}
+                });
+                if (response.ok) {
+                    const users = await response.json();
+                    const tableHtml = `
+                        <table style="width: 100%;">
+                            <thead>
+                                <tr>
+                                    <th>Użytkownik</th>
+                                    <th>Email</th>
+                                    <th>Rola</th>
+                                    <th>Akcje</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${users.map(u => `
+                                    <tr>
+                                        <td>${u.username}</td>
+                                        <td>${u.email}</td>
+                                        <td>${u.role}</td>
+                                        <td>
+                                            ${u.username !== 'admin' ? 
+                                                `<button class="btn btn-danger" onclick="deleteUser(${u.id})">Usuń</button>` 
+                                                : 'Admin'}
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    `;
+                    document.getElementById('usersList').innerHTML = tableHtml;
+                }
+            } catch (error) {
+                console.error('Błąd:', error);
+            }
+        }
+
+        async function addUser() {
+            const username = prompt('Nazwa użytkownika:');
+            if (!username) return;
+    
+            const email = prompt('Email:');
+            if (!email) return;
+    
+            const password = prompt('Hasło (min. 6 znaków):');
+            if (!password || password.length < 6) {
+                alert('Hasło musi mieć minimum 6 znaków!');
+                return;
+            }
+    
+            const role = confirm('Czy to administrator? (OK = Admin, Anuluj = Pracownik)') ? 'admin' : 'worker';
+    
+            try {
+                const response = await fetch('/api/users', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({username, email, password, role})
+                });
+        
+                if (response.ok) {
+                    alert(`Użytkownik dodany!\nLogin: ${username}\nHasło: ${password}\n\nZapisz te dane!`);
+                    showUsersModal();
+                } else {
+                    const error = await response.json();
+                    alert(error.message || 'Błąd dodawania użytkownika!');
+                }
+            } catch (error) {
+                alert('Błąd połączenia!');
+            }
+        }
+
+        async function deleteUser(userId) {
+            if (!confirm('Czy na pewno usunąć tego użytkownika?')) return;
+    
+            try {
+                const response = await fetch(`/api/users/${userId}`, {
+                    method: 'DELETE',
+                    headers: {'Authorization': `Bearer ${token}`}
+                });
+        
+                if (response.ok) {
+                    alert('Użytkownik usunięty!');
+                    showUsersModal();
+                } else {
+                    const error = await response.json();
+                    alert(error.message || 'Nie można usunąć użytkownika!');
+                }
+            } catch (error) {
+                alert('Błąd połączenia!');
+            }
+        }
+
+        // USUWANIE NARZĘDZIA
+        async function deleteTool(toolId) {
+            if (!confirm('Czy na pewno usunąć to narzędzie?')) return;
+    
+            try {
+                const response = await fetch(`/api/tools/${toolId}`, {
+                    method: 'DELETE',
+                    headers: {'Authorization': `Bearer ${token}`}
+                });
+        
+                if (response.ok) {
+                    alert('Narzędzie usunięte!');
+                    loadTools();
+                } else {
+                    const error = await response.json();
+                    alert(error.message || 'Nie można usunąć narzędzia!');
+                }
+            } catch (error) {
+                alert('Błąd połączenia!');
             }
         }
     </script>
